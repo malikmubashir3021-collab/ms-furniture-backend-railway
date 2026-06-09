@@ -41,7 +41,8 @@ async function start() {
   const users = db.exec('SELECT id FROM users LIMIT 1')
   if (users.length === 0 || users[0].values.length === 0) {
     console.log('First run — seeding database...')
-    const { default: seed } = await import('./seed.js')
+    const { seed } = await import('./seed.js')
+    await seed()
   }
 
   app.listen(PORT, () => {

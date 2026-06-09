@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { getDb, saveDb } from './db.js'
 import { initSchema } from './schema.js'
+// @ts-expect-error - JS module without types
 import rawProducts from './seed-data.js'
 
 export async function seed() {
