@@ -1,10 +1,9 @@
 import initSqlJs, { Database as SqlJsDb } from 'sql.js'
 import fs from 'fs'
 import path from 'path'
-import { fileURLToPath } from 'url'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const DB_PATH = path.join(__dirname, '..', 'data.db')
+const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd())
+const DB_PATH = path.join(DATA_DIR, 'data.db')
 
 let db: SqlJsDb
 
@@ -23,5 +22,6 @@ export async function getDb() {
 
 export function saveDb() {
   if (!db) return
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
   fs.writeFileSync(DB_PATH, db.export())
 }
