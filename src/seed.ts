@@ -20,13 +20,13 @@ export async function seed() {
   const cats = db.exec('SELECT id FROM categories LIMIT 1')
   if (cats.length === 0 || cats[0].values.length === 0) {
     const categories = [
-      ['Coffee Tables', 'Coffee Tables'],
-      ['Coffee Sets', 'Coffee Sets'],
-      ['Sofa Set', 'Sofa Set'],
-      ['Bed Set', 'Bed Set'],
+      { name: 'Coffee Tables', display_order: 1 },
+      { name: 'Coffee Sets', display_order: 2 },
+      { name: 'Sofa Set', display_order: 3 },
+      { name: 'Bed Set', display_order: 4 },
     ]
-    for (const [id, label] of categories) {
-      db.run('INSERT INTO categories (id, label) VALUES (?, ?)', [id, label])
+    for (const c of categories) {
+      db.run('INSERT INTO categories (name, display_order) VALUES (?, ?)', [c.name, c.display_order])
     }
     console.log('Categories seeded')
   } else {
@@ -36,9 +36,9 @@ export async function seed() {
   const prods = db.exec('SELECT id FROM products LIMIT 1')
   if (prods.length === 0 || prods[0].values.length === 0) {
     const products = (rawProducts as any[])
-    const stmt = db.prepare('INSERT INTO products (id, name, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, date_added, sales_rank) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    const stmt = db.prepare('INSERT INTO products (id, name, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, date_added, sales_rank, price, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
     for (const p of products) {
-      stmt.bind([p.id, p.name, p.category, p.description, p.material, p.finishing, p.sizing, p.color_scheme, p.top_type, p.model_number, p.badge, p.image, p.date_added, p.sales_rank])
+      stmt.bind([p.id, p.name, p.category, p.description, p.material, p.finishing, p.sizing, p.color_scheme, p.top_type, p.model_number, p.badge, p.image, p.date_added, p.sales_rank, p.price || 0, p.featured ? 1 : 0])
       stmt.step()
       stmt.reset()
     }
