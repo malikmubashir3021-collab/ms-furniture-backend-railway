@@ -2,33 +2,7 @@ import { Router, Response } from 'express'
 import { getDb, saveDb } from '../db.js'
 import { authMiddleware, AuthRequest } from '../midware/auth.js'
 import { queryAll } from '../helpers.js'
-import multer from 'multer'
-import path from 'path'
-import fs from 'fs'
-
 const router = Router()
-
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads')
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true })
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname)
-    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`)
-  },
-})
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg']
-    const ext = path.extname(file.originalname).toLowerCase()
-    if (allowed.includes(ext)) return cb(null, true)
-    cb(new Error('Only image files allowed (jpg, jpeg, png, gif, webp, svg)'))
-  },
-})
 
 // Public: get all products
 router.get('/', async (_req, res: Response) => {
@@ -50,18 +24,6 @@ router.get('/data/featured', async (_req, res: Response) => {
   const db = await getDb()
   const rows = queryAll(db, "SELECT * FROM products WHERE featured = 1 ORDER BY sales_rank ASC")
   res.json(rows)
-})
-
-// Admin: image upload
-router.post('/upload', authMiddleware, (req: AuthRequest, res: Response) => {
-  upload.single('image')(req, res, (err) => {
-    if (err) {
-      if (err instanceof multer.MulterError) return res.status(400).json({ error: err.message })
-      return res.status(400).json({ error: err.message })
-    }
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' })
-    res.json({ path: `/uploads/${req.file.filename}`, filename: req.file.filename })
-  })
 })
 
 // Admin: create product

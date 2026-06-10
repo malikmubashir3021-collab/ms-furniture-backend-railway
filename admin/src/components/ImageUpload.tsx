@@ -20,7 +20,7 @@ export default function ImageUpload({ current, onUpload }: Props) {
     form.append('image', file)
     try {
       const token = localStorage.getItem('token')
-      const res = await fetch(apiUrl('/api/products/upload'), {
+      const res = await fetch(apiUrl('/api/upload'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: form,
