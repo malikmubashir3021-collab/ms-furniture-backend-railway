@@ -7,6 +7,8 @@ import { getDb } from './db.js'
 import { initSchema } from './schema.js'
 import authRoutes from './routes/auth.js'
 import productRoutes from './routes/products.js'
+import categoryRoutes from './routes/categories.js'
+import collectionRoutes from './routes/collections.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -25,6 +27,8 @@ app.use('/admin', express.static(path.join(__dirname, '..', 'admin', 'dist')))
 
 app.use('/api/auth', authRoutes)
 app.use('/api/products', productRoutes)
+app.use('/api/categories', categoryRoutes)
+app.use('/api/collections', collectionRoutes)
 
 app.get('/admin/*', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'admin', 'dist', 'index.html'))

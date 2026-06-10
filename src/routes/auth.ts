@@ -1,6 +1,7 @@
 import { Router, Response } from 'express'
 import bcrypt from 'bcryptjs'
 import { getDb } from '../db.js'
+import { queryAll } from '../helpers.js'
 import { generateToken, authMiddleware, AuthRequest } from '../midware/auth.js'
 
 const router = Router()
@@ -40,7 +41,7 @@ router.post('/register', authMiddleware, async (req: AuthRequest, res: Response)
   }
   const db = await getDb()
 
-  const exists = db.exec(`SELECT id FROM users WHERE username = '${username.replace(/'/g, "''")}'`)
+  const exists = queryAll(db, 'SELECT id FROM users WHERE username = ?', [username])
   if (exists.length > 0 && exists[0].values.length > 0) {
     return res.status(409).json({ error: 'Username already exists' })
   }

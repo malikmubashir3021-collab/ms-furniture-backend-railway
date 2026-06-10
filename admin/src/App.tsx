@@ -6,6 +6,8 @@ import Products from './pages/Products'
 import ProductForm from './pages/ProductForm'
 import CreateAdmin from './pages/CreateAdmin'
 import Layout from './pages/Layout'
+import Categories from './pages/Categories'
+import Collections from './pages/Collections'
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -23,6 +25,8 @@ export default function App() {
         <Route path="products" element={<Products />} />
         <Route path="products/new" element={<ProductForm />} />
         <Route path="products/:id/edit" element={<ProductForm />} />
+        <Route path="categories" element={<Categories />} />
+        <Route path="collections" element={<Collections />} />
         <Route path="admins" element={<CreateAdmin />} />
       </Route>
       <Route path="*" element={<Navigate to="/admin" replace />} />

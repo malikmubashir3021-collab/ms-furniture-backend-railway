@@ -1,11 +1,13 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { LayoutDashboard, Package, UserPlus, LogOut, Store, ChevronDown } from 'lucide-react'
+import { LayoutDashboard, Package, UserPlus, LogOut, Store, ChevronDown, Tags, Layers } from 'lucide-react'
 import { useState } from 'react'
 
 const links = [
   { to: '/admin', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/admin/products', icon: Package, label: 'Products', end: false },
+  { to: '/admin/categories', icon: Tags, label: 'Categories', end: false },
+  { to: '/admin/collections', icon: Layers, label: 'Collections', end: false },
   { to: '/admin/admins', icon: UserPlus, label: 'Admins', end: false },
 ]
 
