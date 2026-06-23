@@ -1,4 +1,5 @@
 const BASE = import.meta.env.DEV ? 'http://localhost:3001' : ''
+const FRONTEND_URL = 'https://msfurniturelahore.com'
 
 export async function api(path: string, opts?: RequestInit) {
   const token = localStorage.getItem('token')
@@ -16,5 +17,6 @@ export async function api(path: string, opts?: RequestInit) {
 }
 
 export function apiUrl(path: string) {
+  if (path.startsWith('/images/')) return FRONTEND_URL + path
   return BASE + path
 }
