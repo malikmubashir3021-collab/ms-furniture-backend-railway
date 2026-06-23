@@ -19,12 +19,23 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } })
 
-// === IMAGE UPLOAD ===
+// === IMAGE UPLOAD (single) ===
 router.post('/upload', authMiddleware, (req: AuthRequest, res: Response) => {
   upload.single('image')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message })
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' })
     res.json({ path: `/uploads/${req.file.filename}`, filename: req.file.filename })
+  })
+})
+
+// === IMAGE UPLOAD (multiple) ===
+router.post('/upload-multiple', authMiddleware, (req: AuthRequest, res: Response) => {
+  upload.array('images', 20)(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message })
+    if (!req.files || !(req.files as Express.Multer.File[]).length) return res.status(400).json({ error: 'No files uploaded' })
+    const files = req.files as Express.Multer.File[]
+    const paths = files.map(f => ({ path: `/uploads/${f.filename}`, filename: f.filename }))
+    res.json(paths)
   })
 })
 

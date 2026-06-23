@@ -62,6 +62,15 @@ export async function initSchema() {
       updated_at TEXT DEFAULT (datetime('now'))
     )
   `)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS product_images (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      image_path TEXT NOT NULL,
+      display_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `)
   saveDb()
   console.log('Schema initialized')
 }

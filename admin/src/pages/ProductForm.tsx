@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { api } from '../api'
-import { ArrowLeft, Star } from 'lucide-react'
-import ImageUpload from '../components/ImageUpload'
+import { api, apiUrl } from '../api'
+import { ArrowLeft, Star, Upload, X, GripVertical } from 'lucide-react'
 
 interface Category {
   id: number
@@ -22,6 +21,7 @@ interface FormData {
   model_number: string
   badge: string
   image: string
+  images: string[]
   price: string
   sale_price: string
   featured: boolean
@@ -30,7 +30,7 @@ interface FormData {
 const empty: FormData = {
   name: '', category_id: '', category: '', description: '', material: '',
   finishing: '', sizing: '', color_scheme: '', top_type: '',
-  model_number: '', badge: '', image: '', price: '', sale_price: '', featured: false,
+  model_number: '', badge: '', image: '', images: [], price: '', sale_price: '', featured: false,
 }
 
 export default function ProductForm() {
@@ -39,7 +39,10 @@ export default function ProductForm() {
   const isEdit = !!id
   const [form, setForm] = useState<FormData>(empty)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
+  const primaryInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     api('/api/categories').then(data => setCategories(Array.isArray(data) ? data : [])).catch(() => {})
@@ -61,6 +64,7 @@ export default function ProductForm() {
           model_number: data.model_number || '',
           badge: data.badge || '',
           image: data.image || '',
+          images: data.images || [],
           price: data.price?.toString() || '',
           sale_price: data.sale_price?.toString() || '',
           featured: data.featured ? true : false,
@@ -68,6 +72,60 @@ export default function ProductForm() {
       })
     }
   }, [id])
+
+  const uploadFile = async (file: File): Promise<string | null> => {
+    if (!file.type.startsWith('image/')) return null
+    const token = localStorage.getItem('token')
+    const formData = new FormData()
+    formData.append('image', file)
+    try {
+      const res = await fetch(apiUrl('/api/upload'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      })
+      const data = await res.json()
+      return data.path || null
+    } catch {
+      return null
+    }
+  }
+
+  const uploadGalleryFiles = async (files: FileList) => {
+    setUploading(true)
+    const paths: string[] = []
+    for (let i = 0; i < files.length; i++) {
+      const path = await uploadFile(files[i])
+      if (path) paths.push(path)
+    }
+    setForm(prev => ({ ...prev, images: [...prev.images, ...paths] }))
+    setUploading(false)
+  }
+
+  const removeGalleryImage = (index: number) => {
+    setForm(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }))
+  }
+
+  const moveGalleryImage = (from: number, to: number) => {
+    if (to < 0 || to >= form.images.length) return
+    const imgs = [...form.images]
+    const [moved] = imgs.splice(from, 1)
+    imgs.splice(to, 0, moved)
+    setForm(prev => ({ ...prev, images: imgs }))
+  }
+
+  const handlePrimaryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const path = await uploadFile(file)
+    if (path) setForm(prev => ({ ...prev, image: path }))
+    if (primaryInputRef.current) primaryInputRef.current.value = ''
+  }
+
+  const removePrimary = () => setForm(prev => ({ ...prev, image: '' }))
 
   const set = (key: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm(prev => ({ ...prev, [key]: e.target.value }))
@@ -199,11 +257,68 @@ export default function ProductForm() {
 
           <div className="space-y-5">
             <div className="shopify-card p-6">
-              <h2 className="text-sm font-semibold text-text-primary mb-4">Product Image</h2>
-              <ImageUpload current={form.image} onUpload={path => setForm(prev => ({ ...prev, image: path }))} />
-              {selectedCategory && (
-                <p className="text-xs text-text-muted mt-2">Category: {selectedCategory.name}</p>
+              <h2 className="text-sm font-semibold text-text-primary mb-4">Primary Image</h2>
+              {form.image ? (
+                <div className="relative mb-3">
+                  <img src={apiUrl(form.image)} alt="Primary" className="w-full h-40 object-cover rounded-lg" />
+                  <button type="button" onClick={removePrimary} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600">
+                    <X size={12} />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => primaryInputRef.current?.click()}
+                  className="border-2 border-dashed border-page-border rounded-lg p-4 text-center cursor-pointer hover:border-shopify/50 hover:bg-gray-50 mb-3"
+                >
+                  <input ref={primaryInputRef} type="file" accept="image/*" onChange={handlePrimaryUpload} className="hidden" />
+                  <Upload size={18} className="text-shopify mx-auto mb-1" />
+                  <p className="text-xs text-text-muted">Click to upload primary image</p>
+                </div>
               )}
+              {selectedCategory && (
+                <p className="text-xs text-text-muted">Category: {selectedCategory.name}</p>
+              )}
+            </div>
+
+            <div className="shopify-card p-6">
+              <h2 className="text-sm font-semibold text-text-primary mb-4">Gallery Images</h2>
+              <div
+                onClick={() => galleryInputRef.current?.click()}
+                className="border-2 border-dashed border-page-border rounded-lg p-3 text-center cursor-pointer hover:border-shopify/50 hover:bg-gray-50 mb-3"
+              >
+                <input
+                  ref={galleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={e => { if (e.target.files?.length) uploadGalleryFiles(e.target.files); e.target.value = '' }}
+                  className="hidden"
+                />
+                <Upload size={16} className="text-shopify mx-auto mb-1" />
+                <p className="text-xs text-text-muted">{uploading ? 'Uploading...' : 'Click to add gallery images'}</p>
+              </div>
+              {form.images.length > 0 && (
+                <div className="space-y-2">
+                  {form.images.map((img, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-lg p-2">
+                      <div className="flex flex-col gap-0.5">
+                        <button type="button" onClick={() => moveGalleryImage(i, i - 1)} disabled={i === 0} className="text-text-muted hover:text-text-primary disabled:opacity-30">
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 1l4 4H1z"/></svg>
+                        </button>
+                        <button type="button" onClick={() => moveGalleryImage(i, i + 1)} disabled={i === form.images.length - 1} className="text-text-muted hover:text-text-primary disabled:opacity-30">
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 9l4-4H1z"/></svg>
+                        </button>
+                      </div>
+                      <img src={apiUrl(img)} alt="" className="w-12 h-12 object-cover rounded flex-shrink-0" />
+                      <span className="text-xs text-text-muted flex-1 truncate">{img.split('/').pop()}</span>
+                      <button type="button" onClick={() => removeGalleryImage(i)} className="text-red-500 hover:text-red-600 flex-shrink-0">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-text-muted mt-2">{form.images.length} gallery image{form.images.length !== 1 ? 's' : ''}</p>
             </div>
 
             <div className="shopify-card p-6">
