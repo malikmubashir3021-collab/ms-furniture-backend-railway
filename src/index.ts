@@ -24,35 +24,6 @@ app.use(express.json())
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')))
 app.use('/admin', express.static(path.join(__dirname, '..', 'admin', 'dist')))
 
-// Fix-products endpoint
-app.all('/api/debug/fix-products', async (_req, res) => {
-  try {
-    const db = await getDb()
-    const catRows = db.exec('SELECT id, name FROM categories')
-    if (!catRows.length) {
-      return res.json({ error: 'No categories found' })
-    }
-    const catMap: Record<string, number> = {}
-    for (const row of catRows[0].values) {
-      catMap[row[1] as string] = row[0] as number
-    }
-    const { default: rawProducts } = await import('./seed-data.js') as any
-    const featuredIds = [1, 3, 36, 54, 49, 46, 21]
-    let count = 0
-    for (const p of rawProducts as any[]) {
-      const catId = catMap[p.category] ?? null
-      const isFeatured = featuredIds.includes(p.id) ? 1 : 0
-      db.run('UPDATE products SET category_id = ?, featured = ? WHERE id = ?', [catId, isFeatured, p.id])
-      count++
-    }
-    saveDb()
-    const sample = db.exec('SELECT id, name, category_id, featured FROM products LIMIT 10')
-    res.json({ updated: count, sample: sample[0]?.values })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message, stack: err.stack })
-  }
-})
-
 app.use('/api/auth', authRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api', adminRoutes)
@@ -90,6 +61,35 @@ async function start() {
     console.log('First run — seeding database...')
     const { seed } = await import('./seed.js')
     await seed()
+  }
+
+  // Run migration: link products to categories and set featured
+  try {
+    const db = await getDb()
+    const prods = db.exec('SELECT id, category_id, featured FROM products LIMIT 1')
+    const firstProduct = prods[0]?.values?.[0]
+    // Only migrate if the first product lacks category_id or featured
+    if (firstProduct && (!firstProduct[1] || !firstProduct[2])) {
+      const catRows = db.exec('SELECT id, name FROM categories')
+      const catMap: Record<string, number> = {}
+      for (const row of catRows[0]?.values || []) {
+        catMap[row[1] as string] = row[0] as number
+      }
+      const { default: rawProducts } = await import('./seed-data.js') as any
+      const featuredIds = [1, 3, 36, 54, 49, 46, 21]
+      const allProducts = db.exec('SELECT id, category FROM products')
+      for (const row of allProducts[0]?.values || []) {
+        const id = row[0] as number
+        const cat = row[1] as string
+        const catId = catMap[cat] ?? null
+        const isFeatured = featuredIds.includes(id) ? 1 : 0
+        db.run('UPDATE products SET category_id = ?, featured = ? WHERE id = ?', [catId, isFeatured, id])
+      }
+      saveDb()
+      console.log('Migration completed: products linked to categories')
+    }
+  } catch (err: any) {
+    console.error('Migration run error:', err.message)
   }
 
   app.listen(PORT, () => {
