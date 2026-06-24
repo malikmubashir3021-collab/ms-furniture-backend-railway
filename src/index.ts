@@ -24,8 +24,8 @@ app.use(express.json())
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')))
 app.use('/admin', express.static(path.join(__dirname, '..', 'admin', 'dist')))
 
-// Fix-products endpoint must be before adminRoutes to avoid routing conflicts
-app.post('/api/fix-products', async (_req, res) => {
+// Fix-products endpoint
+app.all('/api/debug/fix-products', async (_req, res) => {
   try {
     const db = await getDb()
     const catRows = db.exec('SELECT id, name FROM categories')
