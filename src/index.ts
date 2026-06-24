@@ -64,6 +64,8 @@ async function start() {
     await seed()
   }
 
+  await import('./migrate.js').then(m => m.migrate()).catch(() => {})
+
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
   })
