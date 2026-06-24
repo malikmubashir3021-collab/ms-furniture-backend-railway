@@ -141,6 +141,15 @@ export default function Products() {
                   </td>
                 </tr>
               ))}
+              {loading && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-12 text-center">
+                    <div className="flex justify-center">
+                      <div className="w-6 h-6 border-2 border-shopify/30 border-t-shopify rounded-full animate-spin" />
+                    </div>
+                  </td>
+                </tr>
+              )}
               {filtered.length === 0 && !loading && (
                 <tr>
                   <td colSpan={7} className="px-4 py-12 text-center">

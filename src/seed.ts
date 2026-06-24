@@ -33,19 +33,41 @@ export async function seed() {
     console.log('Categories already exist')
   }
 
+  const catRows = db.exec('SELECT id, name FROM categories')
+  const catMap: Record<string, number> = {}
+  if (catRows.length > 0) {
+    for (const row of catRows[0].values) {
+      catMap[row[1] as string] = row[0] as number
+    }
+  }
+
+  const featuredIds = [1, 3, 36, 54, 49, 46, 21]
+
   const prods = db.exec('SELECT id FROM products LIMIT 1')
   if (prods.length === 0 || prods[0].values.length === 0) {
     const products = (rawProducts as any[])
-    const stmt = db.prepare('INSERT INTO products (id, name, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, date_added, sales_rank, price, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    const stmt = db.prepare('INSERT INTO products (id, name, category_id, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, date_added, sales_rank, price, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
     for (const p of products) {
-      stmt.bind([p.id, p.name, p.category, p.description, p.material, p.finishing, p.sizing, p.color_scheme, p.top_type, p.model_number, p.badge, p.image, p.date_added, p.sales_rank, p.price || 0, p.featured ? 1 : 0])
+      const catId = catMap[p.category] || null
+      const isFeatured = featuredIds.includes(p.id) ? 1 : 0
+      stmt.bind([p.id, p.name, catId, p.category, p.description, p.material, p.finishing, p.sizing, p.color_scheme, p.top_type, p.model_number, p.badge, p.image, p.date_added, p.sales_rank, p.price || 0, isFeatured])
       stmt.step()
       stmt.reset()
     }
     stmt.free()
     console.log(`${products.length} products seeded`)
   } else {
-    console.log('Products already exist — skipping')
+    console.log('Products already exist — updating category links and featured')
+    const stmt = db.prepare('UPDATE products SET category_id = ?, featured = ? WHERE id = ?')
+    for (const p of rawProducts) {
+      const catId = catMap[p.category] || null
+      const isFeatured = featuredIds.includes(p.id) ? 1 : 0
+      stmt.bind([catId, isFeatured, p.id])
+      stmt.step()
+      stmt.reset()
+    }
+    stmt.free()
+    console.log('Products updated')
   }
 
   saveDb()

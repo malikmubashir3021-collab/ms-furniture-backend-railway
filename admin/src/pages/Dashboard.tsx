@@ -23,7 +23,8 @@ export default function Dashboard() {
         featured: arr.filter((p: any) => p.featured).length,
         latestProduct: arr.length > 0 ? arr[arr.length - 1].name : null,
       })
-      setLatest(arr.slice(-5).reverse())
+      const sorted = [...arr].sort((a: any, b: any) => new Date(b.created_at || b.date_added).getTime() - new Date(a.created_at || a.date_added).getTime())
+      setLatest(sorted.slice(0, 5))
     })
   }, [])
 
