@@ -3,7 +3,7 @@ import cors from 'cors'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
-import { getDb } from './db.js'
+import { getDb, saveDb } from './db.js'
 import { initSchema } from './schema.js'
 import authRoutes from './routes/auth.js'
 import productRoutes from './routes/products.js'
@@ -64,7 +64,38 @@ async function start() {
     await seed()
   }
 
-  await import('./migrate.js').then(m => m.migrate()).catch(() => {})
+  // Migrate existing products: set category_id and featured
+  try {
+    const db = await getDb()
+    const products = db.exec('SELECT id, category_id, featured FROM products LIMIT 5')
+    console.log('Pre-migration sample:', JSON.stringify(products[0]?.values))
+    const catRows = db.exec('SELECT id, name FROM categories')
+    console.log('Categories:', JSON.stringify(catRows[0]?.values))
+    if (catRows.length > 0) {
+      const { default: rawProducts } = await import('./seed-data.js') as any
+      const catMap: Record<string, number> = {}
+      for (const row of catRows[0].values) {
+        catMap[row[1] as string] = row[0] as number
+      }
+      console.log('catMap:', JSON.stringify(catMap))
+      const sampleProduct = (rawProducts as any[])[0]
+      console.log('Sample product category:', JSON.stringify(sampleProduct?.category), 'type:', typeof sampleProduct?.category)
+      const featuredIds = [1, 3, 36, 54, 49, 46, 21]
+      let count = 0
+      for (const p of rawProducts as any[]) {
+        const catId = catMap[p.category] ?? null
+        const isFeatured = featuredIds.includes(p.id) ? 1 : 0
+        db.run('UPDATE products SET category_id = ?, featured = ? WHERE id = ?', [catId, isFeatured, p.id])
+        count++
+      }
+      saveDb()
+      console.log(`Migration: ${count} products updated`)
+      const check = db.exec('SELECT id, category_id, featured FROM products LIMIT 5')
+      console.log('Post-migration sample:', JSON.stringify(check[0]?.values))
+    }
+  } catch (err: any) {
+    console.error('Migration error:', err.message)
+  }
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
