@@ -1,9 +1,8 @@
 import express from 'express'
 import cors from 'cors'
 import path from 'path'
-import fs from 'fs'
 import { fileURLToPath } from 'url'
-import { getDb } from './db.js'
+import { getDb, saveDb } from './db.js'
 import { initSchema } from './schema.js'
 import authRoutes from './routes/auth.js'
 import productRoutes from './routes/products.js'
@@ -83,6 +82,18 @@ async function start() {
     console.log('First run — seeding database...')
     const { seed } = await import('./seed.js')
     await seed()
+  }
+
+  // Run migration: link products to categories and set featured
+  try {
+    const db = await getDb()
+    db.run("UPDATE products SET category_id = (SELECT id FROM categories WHERE categories.name = products.category)")
+    db.run("UPDATE products SET featured = 1 WHERE id IN (1,3,36,54,49,46,21)")
+    db.run("UPDATE products SET featured = 0 WHERE id NOT IN (1,3,36,54,49,46,21)")
+    saveDb()
+    console.log('Migration: products linked to categories')
+  } catch (err: any) {
+    console.error('Migration error:', err.message)
   }
 
   app.listen(PORT, () => {

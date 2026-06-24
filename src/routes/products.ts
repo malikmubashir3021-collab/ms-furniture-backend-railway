@@ -75,7 +75,7 @@ router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   if (existing.length === 0) return res.status(404).json({ error: 'Not found' })
   const { name, category_id, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, price, sale_price, featured, images } = req.body
   db.run(`UPDATE products SET name=?, category_id=?, category=?, description=?, material=?, finishing=?, sizing=?, color_scheme=?, top_type=?, model_number=?, badge=?, image=?, price=?, sale_price=?, featured=?, updated_at=datetime('now') WHERE id=?`,
-    [name, category_id || null, category || '', description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, price || 0, sale_price || null, featured ? 1 : 0, Number(req.params.id)])
+    [name, category_id || null, category || '', description || '', material || '', finishing || '', sizing || '', color_scheme || '', top_type || '', model_number || '', badge || '', image || '', price || 0, sale_price || null, featured ? 1 : 0, Number(req.params.id)])
   if (images && Array.isArray(images)) {
     db.run('DELETE FROM product_images WHERE product_id = ?', [Number(req.params.id)])
     for (let i = 0; i < images.length; i++) {
