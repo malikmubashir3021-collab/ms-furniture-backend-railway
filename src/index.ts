@@ -33,6 +33,10 @@ app.get('/api/test-direct', (_req, res) => {
   res.json({ message: 'Direct route works!' })
 })
 
+app.get('/api/ping', (_req, res) => {
+  res.json({ pong: true })
+})
+
 app.get('/admin/*', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'admin', 'dist', 'index.html'))
 })
