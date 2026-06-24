@@ -51,61 +51,49 @@ router.get('/data/featured', async (_req, res: Response) => {
 
 // Admin: create product
 router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
-  try {
-    const { name, category_id, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, price, sale_price, featured, images } = req.body
-    if (!name) return res.status(400).json({ error: 'Product name is required' })
-    const db = await getDb()
-    db.run(`INSERT INTO products (name, category_id, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, price, sale_price, featured)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, category_id || null, category || '', description || '', material || '', finishing || '', sizing || '', color_scheme || '', top_type || '', model_number || '', badge || '', image || '', price || 0, sale_price || null, featured ? 1 : 0])
-    const rows = queryAll(db, 'SELECT * FROM products ORDER BY id DESC LIMIT 1')
-    const product = rows[0]
-    if (images && Array.isArray(images)) {
-      for (let i = 0; i < images.length; i++) {
-        db.run('INSERT INTO product_images (product_id, image_path, display_order) VALUES (?, ?, ?)', [product.id, images[i], i])
-      }
+  const { name, category_id, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, price, sale_price, featured, images } = req.body
+  if (!name) return res.status(400).json({ error: 'Product name is required' })
+  const db = await getDb()
+  db.run(`INSERT INTO products (name, category_id, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, price, sale_price, featured)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [name, category_id || null, category || '', description || '', material || '', finishing || '', sizing || '', color_scheme || '', top_type || '', model_number || '', badge || '', image || '', price || 0, sale_price || null, featured ? 1 : 0])
+  const rows = queryAll(db, 'SELECT * FROM products ORDER BY id DESC LIMIT 1')
+  const product = rows[0]
+  if (images && Array.isArray(images)) {
+    for (let i = 0; i < images.length; i++) {
+      db.run('INSERT INTO product_images (product_id, image_path, display_order) VALUES (?, ?, ?)', [product.id, images[i], i])
     }
-    saveDb()
-    res.status(201).json(attachImages(db, product))
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
   }
+  saveDb()
+  res.status(201).json(attachImages(db, product))
 })
 
 // Admin: update product
 router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
-  try {
-    const db = await getDb()
-    const existing = queryAll(db, 'SELECT id FROM products WHERE id = ?', [Number(req.params.id)])
-    if (existing.length === 0) return res.status(404).json({ error: 'Not found' })
-    const { name, category_id, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, price, sale_price, featured, images } = req.body
-    db.run(`UPDATE products SET name=?, category_id=?, category=?, description=?, material=?, finishing=?, sizing=?, color_scheme=?, top_type=?, model_number=?, badge=?, image=?, price=?, sale_price=?, featured=?, updated_at=datetime('now') WHERE id=?`,
-      [name, category_id || null, category || '', description || '', material || '', finishing || '', sizing || '', color_scheme || '', top_type || '', model_number || '', badge || '', image || '', price || 0, sale_price || null, featured ? 1 : 0, Number(req.params.id)])
-    if (images && Array.isArray(images)) {
-      db.run('DELETE FROM product_images WHERE product_id = ?', [Number(req.params.id)])
-      for (let i = 0; i < images.length; i++) {
-        db.run('INSERT INTO product_images (product_id, image_path, display_order) VALUES (?, ?, ?)', [Number(req.params.id), images[i], i])
-      }
+  const db = await getDb()
+  const existing = queryAll(db, 'SELECT id FROM products WHERE id = ?', [Number(req.params.id)])
+  if (existing.length === 0) return res.status(404).json({ error: 'Not found' })
+  const { name, category_id, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, price, sale_price, featured, images } = req.body
+  db.run(`UPDATE products SET name=?, category_id=?, category=?, description=?, material=?, finishing=?, sizing=?, color_scheme=?, top_type=?, model_number=?, badge=?, image=?, price=?, sale_price=?, featured=?, updated_at=datetime('now') WHERE id=?`,
+    [name, category_id || null, category || '', description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, price || 0, sale_price || null, featured ? 1 : 0, Number(req.params.id)])
+  if (images && Array.isArray(images)) {
+    db.run('DELETE FROM product_images WHERE product_id = ?', [Number(req.params.id)])
+    for (let i = 0; i < images.length; i++) {
+      db.run('INSERT INTO product_images (product_id, image_path, display_order) VALUES (?, ?, ?)', [Number(req.params.id), images[i], i])
     }
-    saveDb()
-    const rows = queryAll(db, 'SELECT * FROM products WHERE id = ?', [Number(req.params.id)])
-    res.json(attachImages(db, rows[0]))
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
   }
+  saveDb()
+  const rows = queryAll(db, 'SELECT * FROM products WHERE id = ?', [Number(req.params.id)])
+  res.json(attachImages(db, rows[0]))
 })
 
 // Admin: delete product
 router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
-  try {
-    const db = await getDb()
-    db.run('DELETE FROM product_images WHERE product_id = ?', [Number(req.params.id)])
-    db.run('DELETE FROM products WHERE id = ?', [Number(req.params.id)])
-    saveDb()
-    res.json({ success: true })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
-  }
+  const db = await getDb()
+  db.run('DELETE FROM product_images WHERE product_id = ?', [Number(req.params.id)])
+  db.run('DELETE FROM products WHERE id = ?', [Number(req.params.id)])
+  saveDb()
+  res.json({ success: true })
 })
 
 export default router
