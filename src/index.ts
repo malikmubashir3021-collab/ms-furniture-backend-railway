@@ -33,6 +33,31 @@ app.get('/api/test-direct', (_req, res) => {
   res.json({ message: 'Direct route works!' })
 })
 
+app.get('/api/run-migration', async (_req, res) => {
+  try {
+    const db = await getDb()
+    const catRows = db.exec('SELECT id, name FROM categories')
+    const catMap: Record<string, number> = {}
+    for (const row of catRows[0].values) {
+      catMap[row[1] as string] = row[0] as number
+    }
+    const { default: rawProducts } = await import('./seed-data.js') as any
+    const featuredIds = [1, 3, 36, 54, 49, 46, 21]
+    let count = 0
+    for (const p of rawProducts as any[]) {
+      const catId = catMap[p.category] ?? null
+      const isFeatured = featuredIds.includes(p.id) ? 1 : 0
+      db.run('UPDATE products SET category_id = ?, featured = ? WHERE id = ?', [catId, isFeatured, p.id])
+      count++
+    }
+    saveDb()
+    const sample = db.exec('SELECT id, name, category_id, featured FROM products LIMIT 10')
+    res.json({ updated: count, sample: sample[0]?.values })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, stack: err.stack })
+  }
+})
+
 app.get('/admin/*', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'admin', 'dist', 'index.html'))
 })
