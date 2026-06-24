@@ -43,10 +43,26 @@ app.get('/api/health', (_req, res) => {
 app.get('/api/test-categories', async (_req, res) => {
   try {
     const { queryAll } = await import('./helpers.js')
-    const { getDb } = await import('./db.js')
+    const { getDb, saveDb } = await import('./db.js')
     const db = await getDb()
     const rows = queryAll(db, 'SELECT * FROM categories ORDER BY rowid ASC')
     res.json({ success: true, count: rows.length, data: rows })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, stack: err.stack })
+  }
+})
+
+app.get('/api/do-migration', async (_req, res) => {
+  try {
+    const { getDb, saveDb } = await import('./db.js')
+    const db = await getDb()
+    db.run("UPDATE products SET category_id = (SELECT id FROM categories WHERE categories.name = products.category)")
+    db.run("UPDATE products SET featured = 1 WHERE id IN (1, 3, 36, 54, 49, 46, 21)")
+    db.run("UPDATE products SET featured = 0 WHERE id NOT IN (1, 3, 36, 54, 49, 46, 21)")
+    saveDb()
+    const { queryAll } = await import('./helpers.js')
+    const sample = queryAll(db, 'SELECT id, name, category_id, featured FROM products ORDER BY id LIMIT 10')
+    res.json({ message: 'Migration done', sample })
   } catch (err: any) {
     res.status(500).json({ error: err.message, stack: err.stack })
   }
@@ -66,10 +82,10 @@ async function start() {
   // Run migration: link products to categories and set featured
   try {
     const db = await getDb()
-    // Use raw SQL to avoid any binding issues
-    db.exec("UPDATE products SET category_id = (SELECT id FROM categories WHERE categories.name = products.category)")
-    db.exec("UPDATE products SET featured = 1 WHERE id IN (1, 3, 36, 54, 49, 46, 21)")
-    db.exec("UPDATE products SET featured = 0 WHERE id NOT IN (1, 3, 36, 54, 49, 46, 21)")
+    // Use db.run() with raw SQL to avoid parameter binding issues
+    db.run("UPDATE products SET category_id = (SELECT id FROM categories WHERE categories.name = products.category)")
+    db.run("UPDATE products SET featured = 1 WHERE id IN (1, 3, 36, 54, 49, 46, 21)")
+    db.run("UPDATE products SET featured = 0 WHERE id NOT IN (1, 3, 36, 54, 49, 46, 21)")
     saveDb()
     console.log('Migration completed: products linked to categories')
   } catch (err: any) {
