@@ -56,13 +56,16 @@ app.get('/api/do-migration', async (_req, res) => {
   try {
     const { getDb, saveDb } = await import('./db.js')
     const db = await getDb()
+    const before = (db.exec('SELECT id, category_id, featured FROM products LIMIT 5')[0]?.values) || []
     db.run("UPDATE products SET category_id = (SELECT id FROM categories WHERE categories.name = products.category)")
     db.run("UPDATE products SET featured = 1 WHERE id IN (1, 3, 36, 54, 49, 46, 21)")
     db.run("UPDATE products SET featured = 0 WHERE id NOT IN (1, 3, 36, 54, 49, 46, 21)")
     saveDb()
+    const after = (db.exec('SELECT id, category_id, featured FROM products LIMIT 5')[0]?.values) || []
     const { queryAll } = await import('./helpers.js')
+    const cats = queryAll(db, 'SELECT id, name FROM categories ORDER BY id')
     const sample = queryAll(db, 'SELECT id, name, category_id, featured FROM products ORDER BY id LIMIT 10')
-    res.json({ message: 'Migration done', sample })
+    res.json({ message: 'Migration done', before, after, cats, sample })
   } catch (err: any) {
     res.status(500).json({ error: err.message, stack: err.stack })
   }
@@ -77,19 +80,6 @@ async function start() {
     console.log('First run — seeding database...')
     const { seed } = await import('./seed.js')
     await seed()
-  }
-
-  // Run migration: link products to categories and set featured
-  try {
-    const db = await getDb()
-    // Use db.run() with raw SQL to avoid parameter binding issues
-    db.run("UPDATE products SET category_id = (SELECT id FROM categories WHERE categories.name = products.category)")
-    db.run("UPDATE products SET featured = 1 WHERE id IN (1, 3, 36, 54, 49, 46, 21)")
-    db.run("UPDATE products SET featured = 0 WHERE id NOT IN (1, 3, 36, 54, 49, 46, 21)")
-    saveDb()
-    console.log('Migration completed: products linked to categories')
-  } catch (err: any) {
-    console.error('Migration run error:', err.message)
   }
 
   app.listen(PORT, () => {
