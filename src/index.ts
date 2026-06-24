@@ -66,28 +66,12 @@ async function start() {
   // Run migration: link products to categories and set featured
   try {
     const db = await getDb()
-    const prods = db.exec('SELECT id, category_id, featured FROM products LIMIT 1')
-    const firstProduct = prods[0]?.values?.[0]
-    // Only migrate if the first product lacks category_id or featured
-    if (firstProduct && (!firstProduct[1] || !firstProduct[2])) {
-      const catRows = db.exec('SELECT id, name FROM categories')
-      const catMap: Record<string, number> = {}
-      for (const row of catRows[0]?.values || []) {
-        catMap[row[1] as string] = row[0] as number
-      }
-      const { default: rawProducts } = await import('./seed-data.js') as any
-      const featuredIds = [1, 3, 36, 54, 49, 46, 21]
-      const allProducts = db.exec('SELECT id, category FROM products')
-      for (const row of allProducts[0]?.values || []) {
-        const id = row[0] as number
-        const cat = row[1] as string
-        const catId = catMap[cat] ?? null
-        const isFeatured = featuredIds.includes(id) ? 1 : 0
-        db.run('UPDATE products SET category_id = ?, featured = ? WHERE id = ?', [catId, isFeatured, id])
-      }
-      saveDb()
-      console.log('Migration completed: products linked to categories')
-    }
+    // Use raw SQL to avoid any binding issues
+    db.exec("UPDATE products SET category_id = (SELECT id FROM categories WHERE categories.name = products.category)")
+    db.exec("UPDATE products SET featured = 1 WHERE id IN (1, 3, 36, 54, 49, 46, 21)")
+    db.exec("UPDATE products SET featured = 0 WHERE id NOT IN (1, 3, 36, 54, 49, 46, 21)")
+    saveDb()
+    console.log('Migration completed: products linked to categories')
   } catch (err: any) {
     console.error('Migration run error:', err.message)
   }
