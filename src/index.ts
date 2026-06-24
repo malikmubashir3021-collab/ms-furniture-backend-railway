@@ -24,35 +24,7 @@ app.use(express.json())
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')))
 app.use('/admin', express.static(path.join(__dirname, '..', 'admin', 'dist')))
 
-app.use('/api/auth', authRoutes)
-app.use('/api/products', productRoutes)
-app.use('/api', adminRoutes)
-
-// Direct inline test route
-app.get('/api/test-direct', (_req, res) => {
-  res.json({ message: 'Direct route works!' })
-})
-
-app.get('/admin/*', (_req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'admin', 'dist', 'index.html'))
-})
-
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', version: '2.0', routes: app._router?.stack?.filter?.((l: any) => l.route)?.length || 0 })
-})
-
-app.get('/api/test-categories', async (_req, res) => {
-  try {
-    const { queryAll } = await import('./helpers.js')
-    const { getDb } = await import('./db.js')
-    const db = await getDb()
-    const rows = queryAll(db, 'SELECT * FROM categories ORDER BY rowid ASC')
-    res.json({ success: true, count: rows.length, data: rows })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message, stack: err.stack })
-  }
-})
-
+// Fix-products endpoint must be before adminRoutes to avoid routing conflicts
 app.post('/api/fix-products', async (_req, res) => {
   try {
     const db = await getDb()
@@ -76,6 +48,34 @@ app.post('/api/fix-products', async (_req, res) => {
     saveDb()
     const sample = db.exec('SELECT id, name, category_id, featured FROM products LIMIT 10')
     res.json({ updated: count, sample: sample[0]?.values })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, stack: err.stack })
+  }
+})
+
+app.use('/api/auth', authRoutes)
+app.use('/api/products', productRoutes)
+app.use('/api', adminRoutes)
+
+app.get('/api/test-direct', (_req, res) => {
+  res.json({ message: 'Direct route works!' })
+})
+
+app.get('/admin/*', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'admin', 'dist', 'index.html'))
+})
+
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', version: '2.0', routes: app._router?.stack?.filter?.((l: any) => l.route)?.length || 0 })
+})
+
+app.get('/api/test-categories', async (_req, res) => {
+  try {
+    const { queryAll } = await import('./helpers.js')
+    const { getDb } = await import('./db.js')
+    const db = await getDb()
+    const rows = queryAll(db, 'SELECT * FROM categories ORDER BY rowid ASC')
+    res.json({ success: true, count: rows.length, data: rows })
   } catch (err: any) {
     res.status(500).json({ error: err.message, stack: err.stack })
   }
