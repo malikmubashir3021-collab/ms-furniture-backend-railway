@@ -19,21 +19,22 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
 const imagesDir = path.join(__dirname, '..', 'uploads', 'images');
-app.use('/images', (req, res, next) => {
-  const filename = path.basename(req.path);
-  if (!filename || filename.includes('..')) return next();
+app.get('/images/:filename(*)', async (req, res) => {
+  const filename = req.params.filename;
+  if (!filename || filename.includes('..')) return res.status(400).end();
   const filePath = path.join(imagesDir, filename);
   if (fs.existsSync(filePath)) return res.sendFile(filePath);
-  const liveUrl = `https://msfurniturelahore.com/images/${filename}`;
-  fetch(liveUrl).then(r => {
+  try {
+    const r = await fetch(`https://msfurniturelahore.com/images/${filename}`);
     if (!r.ok) return res.status(404).end();
+    const buffer = Buffer.from(await r.arrayBuffer());
+    fs.mkdirSync(imagesDir, { recursive: true });
+    fs.writeFile(filePath, buffer, () => {});
     res.set('Content-Type', r.headers.get('content-type') || 'image/webp');
-    return r.arrayBuffer().then(buf => {
-      fs.mkdirSync(imagesDir, { recursive: true });
-      fs.writeFile(filePath, Buffer.from(buf), () => {});
-      res.end(Buffer.from(buf));
-    });
-  }).catch(() => res.status(502).end());
+    res.end(buffer);
+  } catch {
+    res.status(502).end();
+  }
 });
 
 app.use('/admin', express.static(path.join(__dirname, '..', 'admin', 'dist')));
