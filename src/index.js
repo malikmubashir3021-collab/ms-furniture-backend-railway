@@ -20,22 +20,7 @@ app.use(express.json({ limit: '50mb' }));
 
 const imagesDir = path.join(__dirname, '..', 'uploads', 'images');
 fs.mkdirSync(imagesDir, { recursive: true });
-
 app.use('/images', express.static(imagesDir));
-
-app.use('/images', (req, res, next) => {
-  const filename = req.path.replace(/^\//, '');
-  if (!filename || filename.includes('..') || filename.includes('/')) return next();
-  const filePath = path.join(imagesDir, filename);
-  fetch(`https://msfurniturelahore.com/images/${encodeURIComponent(filename)}`).then(r => {
-    if (!r.ok) return next();
-    res.set('Content-Type', r.headers.get('content-type') || 'image/webp');
-    return r.arrayBuffer().then(buf => {
-      fs.writeFileSync(filePath, Buffer.from(buf));
-      res.end(Buffer.from(buf));
-    });
-  }).catch(() => next());
-});
 
 app.use('/admin', express.static(path.join(__dirname, '..', 'admin', 'dist')));
 
@@ -51,15 +36,6 @@ app.get('/admin/*', (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-app.get('/api/debug-image/:name', async (req, res) => {
-  try {
-    const r = await fetch(`https://msfurniturelahore.com/images/${req.params.name}`);
-    res.json({ status: r.status, ok: r.ok, type: r.headers.get('content-type') });
-  } catch (e) {
-    res.json({ error: e.message });
-  }
 });
 
 app.post('/api/reseed', (req, res) => {
