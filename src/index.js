@@ -36,6 +36,15 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.post('/api/reseed', (req, res) => {
+  try {
+    seedData();
+    res.json({ message: 'Reseed complete' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: err.message || 'Internal server error' });
@@ -53,9 +62,6 @@ function seedData() {
     console.log('Default admin user created: admin / admin123');
   }
 
-  const productCount = db.prepare('SELECT COUNT(*) as c FROM products').get().c;
-  if (productCount > 0) return;
-
   const seedPath = path.join(__dirname, 'products.json');
   if (!fs.existsSync(seedPath)) return;
 
@@ -70,7 +76,7 @@ function seedData() {
   }
 
   const insertProduct = db.prepare(`
-    INSERT OR IGNORE INTO products (id, name, slug, category_id, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, images, price, sale_price, featured, created_at, updated_at)
+    INSERT OR REPLACE INTO products (id, name, slug, category_id, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, images, price, sale_price, featured, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `);
 
