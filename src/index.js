@@ -18,7 +18,21 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-app.use('/images', express.static(path.join(__dirname, '..', 'uploads', 'images')));
+const imagesDir = path.join(__dirname, '..', 'uploads', 'images');
+app.use('/images', (req, res, next) => {
+  const filePath = path.join(imagesDir, path.basename(req.path));
+  if (fs.existsSync(filePath)) return express.static(imagesDir)(req, res, next);
+  const liveUrl = `https://msfurniturelahore.com${req.originalUrl}`;
+  fetch(liveUrl).then(r => {
+    if (!r.ok) return res.status(404).json({ error: 'Image not found' });
+    res.set('Content-Type', r.headers.get('content-type') || 'image/webp');
+    return r.arrayBuffer().then(buf => {
+      fs.mkdirSync(imagesDir, { recursive: true });
+      fs.writeFile(filePath, Buffer.from(buf), () => {});
+      res.end(Buffer.from(buf));
+    });
+  }).catch(() => res.status(502).json({ error: 'Failed to fetch image' }));
+});
 
 app.use('/admin', express.static(path.join(__dirname, '..', 'admin', 'dist')));
 
