@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { db } from './db.js';
 import authRoutes from './routes/auth.js';
@@ -40,9 +41,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`MS Furniture backend running on http://localhost:${PORT}`);
-  console.log(`Admin panel: http://localhost:${PORT}/admin`);
+function seedData() {
+  function slugify(text) {
+    return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
 
   const adminExists = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
   if (!adminExists) {
@@ -50,4 +52,55 @@ app.listen(PORT, () => {
     db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('admin', hashed);
     console.log('Default admin user created: admin / admin123');
   }
+
+  const productCount = db.prepare('SELECT COUNT(*) as c FROM products').get().c;
+  if (productCount > 0) return;
+
+  const seedPath = path.join(__dirname, 'products.json');
+  if (!fs.existsSync(seedPath)) return;
+
+  const products = JSON.parse(fs.readFileSync(seedPath, 'utf-8'));
+  const categoryNames = [...new Set(products.map(p => p.category).filter(Boolean))];
+
+  const insertCategory = db.prepare('INSERT OR IGNORE INTO categories (name, slug, description, image, display_order) VALUES (?, ?, ?, ?, ?)');
+  const getCategory = db.prepare('SELECT id FROM categories WHERE name = ?');
+
+  for (let i = 0; i < categoryNames.length; i++) {
+    insertCategory.run(categoryNames[i], slugify(categoryNames[i]), '', '', i + 1);
+  }
+
+  const insertProduct = db.prepare(`
+    INSERT OR IGNORE INTO products (id, name, slug, category_id, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, images, price, sale_price, featured, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+  `);
+
+  const insertMany = db.transaction((prods) => {
+    for (const p of prods) {
+      const catRow = getCategory.get(p.category);
+      insertProduct.run(
+        p.id, p.name, slugify(p.name),
+        catRow?.id || null, p.category || '',
+        p.description || '', p.material || '',
+        p.finishing || '', p.sizing || '',
+        p.color_scheme || '', p.top_type || '',
+        p.model_number || '', p.badge || '',
+        p.image || '', '[]',
+        0, null, p.badge === 'best-seller' ? 1 : 0,
+        p.date_added || null
+      );
+    }
+  });
+
+  try {
+    insertMany(products);
+    console.log(`Seeded ${products.length} products across ${categoryNames.length} categories`);
+  } catch (e) {
+    console.error('Seed error:', e.message);
+  }
+}
+
+app.listen(PORT, () => {
+  console.log(`MS Furniture backend running on http://localhost:${PORT}`);
+  console.log(`Admin panel: http://localhost:${PORT}/admin`);
+  seedData();
 });

@@ -1,20 +1,26 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
+import bcrypt from 'bcryptjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = path.join(__dirname, '..', 'data', 'msfurniture.db');
 
-import fs from 'fs';
 fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-
 const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
 db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
+  DROP TABLE IF EXISTS collection_products;
+  DROP TABLE IF EXISTS products;
+  DROP TABLE IF EXISTS collections;
+  DROP TABLE IF EXISTS categories;
+  DROP TABLE IF EXISTS users;
+
+  CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
@@ -22,7 +28,7 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now'))
   );
 
-  CREATE TABLE IF NOT EXISTS categories (
+  CREATE TABLE categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL,
     slug TEXT UNIQUE,
@@ -32,7 +38,7 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now'))
   );
 
-  CREATE TABLE IF NOT EXISTS collections (
+  CREATE TABLE collections (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL,
     slug TEXT UNIQUE,
@@ -42,7 +48,7 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now'))
   );
 
-  CREATE TABLE IF NOT EXISTS collection_products (
+  CREATE TABLE collection_products (
     collection_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL,
     PRIMARY KEY (collection_id, product_id),
@@ -50,7 +56,7 @@ db.exec(`
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
   );
 
-  CREATE TABLE IF NOT EXISTS products (
+  CREATE TABLE products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     slug TEXT UNIQUE,
@@ -79,4 +85,44 @@ function slugify(text) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-export { db, slugify };
+const hashedPassword = bcrypt.hashSync('admin123', 10);
+db.prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)').run('admin', hashedPassword, 'admin');
+
+const productsPath = path.join(__dirname, 'products.json');
+const products = JSON.parse(fs.readFileSync(productsPath, 'utf-8'));
+
+const categoryNames = [...new Set(products.map(p => p.category).filter(Boolean))];
+
+const insertCategory = db.prepare('INSERT INTO categories (name, slug, description, image, display_order) VALUES (?, ?, ?, ?, ?)');
+const getCategory = db.prepare('SELECT id FROM categories WHERE name = ?');
+
+for (let i = 0; i < categoryNames.length; i++) {
+  insertCategory.run(categoryNames[i], slugify(categoryNames[i]), '', '', i + 1);
+}
+
+const insertProduct = db.prepare(`
+  INSERT INTO products (id, name, slug, category_id, category, description, material, finishing, sizing, color_scheme, top_type, model_number, badge, image, images, price, sale_price, featured, created_at, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+`);
+
+const insertMany = db.transaction((prods) => {
+  for (const p of prods) {
+    const catRow = getCategory.get(p.category);
+    insertProduct.run(
+      p.id, p.name, slugify(p.name),
+      catRow?.id || null, p.category || '',
+      p.description || '', p.material || '',
+      p.finishing || '', p.sizing || '',
+      p.color_scheme || '', p.top_type || '',
+      p.model_number || '', p.badge || '',
+      p.image || '', '[]',
+      0, null, p.badge === 'best-seller' ? 1 : 0,
+      p.date_added || null
+    );
+  }
+});
+
+insertMany(products);
+
+console.log(`Seeded: 1 admin user, ${categoryNames.length} categories, ${products.length} products`);
+db.close();
