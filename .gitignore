@@ -2,5 +2,3 @@ node_modules/
 data/
 .env
 AGENTS.md
-uploads/images/*
-!uploads/images/.gitkeep
