@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#C9A84C" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <title>MS Furniture | Royal Luxury Furniture</title>
+    <meta name="description" content="MS Furniture — Where Royal Luxury Takes Its Place. Handcrafted premium furniture with jet black, smoked grey, and royal golden finishes." />
+    <meta property="og:title" content="MS Furniture | Royal Luxury Furniture" />
+    <meta property="og:description" content="Where Royal Luxury Takes Its Place. Handcrafted premium furniture." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/images/hero-bg.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet" />
+  <script>
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+    var _sk = function() { return location.pathname + location.search }
+    var _ss = function() {
+      try { sessionStorage.setItem('_msf_' + _sk(), window.scrollY) } catch (e) {}
+    }
+    document.addEventListener('scroll', _ss, { passive: true })
+    document.addEventListener('click', function(e) {
+      var a = e.target.closest('a')
+      if (a && a.href && a.origin === window.location.origin) _ss()
+    }, { capture: true })
+    setTimeout(_ss, 0)
+    window.addEventListener('popstate', function() {
+      requestAnimationFrame(function() {
+        var pos = sessionStorage.getItem('_msf_' + _sk())
+        if (pos && Number(pos) > 0) {
+          var fn = function() {
+            if (document.documentElement.scrollHeight > Number(pos) + 100) {
+              document.documentElement.scrollTop = Number(pos)
+              return true
+            }
+            return false
+          }
+          if (!fn()) {
+            var t = 0, id = setInterval(function() {
+              t++; if (fn() || t > 30) clearInterval(id)
+            }, 100)
+          }
+        } else {
+          document.documentElement.scrollTop = 0
+        }
+      })
+    })
+  </script>
+    <script type="module" crossorigin src="/assets/index-C7UadGkA.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/style-CpfEaYxA.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
