@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const PORT = Number(process.env.PORT) || 3001
 
-const allowedOrigins = ['https://msfurniturelahore.com', 'http://localhost:5173', 'http://localhost:3001']
+const allowedOrigins = ['https://msfurniturelahore.com', 'https://ms-furniture-backend-production-0722.up.railway.app', 'http://localhost:5173', 'http://localhost:3001']
 
 app.use(cors({
   origin: (origin, cb) => { cb(null, !origin || allowedOrigins.includes(origin) ? true : false) },
@@ -39,6 +39,15 @@ app.get('/api/ping', (_req, res) => {
 
 app.get('/admin/*', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'admin', 'dist', 'index.html'))
+})
+
+// Serve store SPA
+app.use('/assets', express.static(path.join(__dirname, '..', 'client', 'dist', 'assets')))
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/') || req.path.startsWith('/admin') || req.path.startsWith('/images/') || req.path.startsWith('/uploads/') || req.path.startsWith('/assets/')) {
+    return next()
+  }
+  res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'))
 })
 
 app.get('/api/health', (_req, res) => {

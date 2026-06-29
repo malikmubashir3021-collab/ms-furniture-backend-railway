@@ -1,0 +1,16 @@
+{
+  "name": "MS Furniture — Royal Luxury",
+  "short_name": "MS Furniture",
+  "description": "Handcrafted luxury furniture in premium finishes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0A",
+  "theme_color": "#C9A84C",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "48x48",
+      "type": "image/svg+xml"
+    }
+  ]
+}

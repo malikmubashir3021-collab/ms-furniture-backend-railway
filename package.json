@@ -6,7 +6,7 @@
     "start": "npx tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
     "seed": "npx tsx src/seed.ts",
-    "build": "npx tsc && cd admin && npm install && npm run build"
+    "build": "npx tsc && cd admin && npm install && npm run build && cd ../client && npm install && npm run build"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

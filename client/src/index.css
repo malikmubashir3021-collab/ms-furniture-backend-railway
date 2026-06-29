@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+@layer base {
+  *:focus-visible {
+    outline: 2px solid #C9A84C;
+    outline-offset: 2px;
+  }
+
+  html {
+    scroll-padding-top: 80px;
+  }
+}
+
+@theme {
+  --color-jet: #0A0A0A;
+  --color-jet-light: #1A1A1A;
+  --color-jet-lighter: #2A2A2A;
+  --color-smoke: #3A3A3A;
+  --color-smoke-light: #5A5A5A;
+  --color-gold: #C9A84C;
+  --color-gold-light: #D4AF37;
+  --color-gold-dark: #A8882E;
+  --color-cream: #F5F0E8;
+  --color-cream-dark: #E5DCC8;
+  --color-foreground: #E5E5E5;
+  --color-foreground-muted: #909090;
+  --color-border: rgba(201, 168, 76, 0.15);
+  --color-border-hover: rgba(201, 168, 76, 0.4);
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background-color: var(--color-jet);
+    color: var(--color-foreground);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: var(--color-gold);
+    color: var(--color-jet);
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-jet);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-smoke);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-gold-dark);
+  }
+}
+
+@utility container-main {
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .direction-md-rtl {
+    direction: rtl;
+  }
+  .direction-md-rtl > * {
+    direction: ltr;
+  }
+}

@@ -4,3 +4,5 @@ dist/
 uploads/*
 !uploads/.gitkeep
 admin/dist/
+client/dist/
+client/node_modules/
